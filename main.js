@@ -1,7 +1,8 @@
 'use strict';
 
-$(document).ready(function() {
 
+$(document).ready(function() {
+  let currentCtx;
   let key;
   let faces = [];
   let imageParams = {
@@ -13,7 +14,6 @@ $(document).ready(function() {
   };
 
   $('#pic1, #pic2').click(detectFaces);
-
 
   function detectFaces() {
     key = $('#key').val();
@@ -32,9 +32,26 @@ $(document).ready(function() {
     }
 
     // display the picture currently being processed in the DOM
-    $('#pictures').append( $('<img>').attr('src', url) );
+    var  $newDiv = $('<div>');
+    var newImg = $('<img>').attr('src', url);
+    var newW = newImg[0].naturalWidth
+    var newH = newImg[0].naturalHeight
+
+    // $('#pictures').append($newDiv)
+    var $newCanvas = $('<canvas>');
+    $newCanvas.css('background', 'url(' + url + ')');
+    $newCanvas.attr('width',newW);
+    $newCanvas.attr('height',newH);
+    $newCanvas.attr('id','canvas')
+
+     $('#pictures').append( $newCanvas );
+
+     currentCtx = $newCanvas[0].getContext('2d');
+
 
     console.log('url:', url)
+
+     //DEBUG
 
     // oh dear, this is callback hell...
     $.ajax( paramForDetect(url) )
@@ -49,27 +66,10 @@ $(document).ready(function() {
         if (faces.length > 0) {
           let haveAlreadyp = verifyFace(person.faceId, faces[0].faceId);
           $.when(haveAlreadyp).then((data) => {
-            console.log('haveAlreadyp result:', data.isIdentical);
-
-            if (!data.isIdentical) {
-              // update our array of known faces
-              faces.push(person);
-              console.log('faces array:', faces);
-              // print the new face ID to the DOM
-              let $row = $('<tr>').append( $('<td>').text(person.faceId) );
-              $('#faceIds').append($row).show();
-
-              // TODO: DISPLAY BOX AROUND THIS PERSON'S FACE ON TOP OF PICTURE
-            }
-
+            if (!data.isIdentical) addPerson(person);
           });
         } else {
-          // update our array of known faces
-          faces.push(person);
-          console.log('faces array:', faces);
-          // print the new face ID to the DOM
-          let $row = $('<tr>').append( $('<td>').text(person.faceId) );
-          $('#faceIds').append($row).show();
+          addPerson(person);
         }
       });
 
@@ -80,6 +80,45 @@ $(document).ready(function() {
     });
 
   }; // end detectFaces function
+
+
+  function addPerson(person) {
+    // update our array of known faces
+    faces.push(person);
+    console.log('faces array:', faces);
+
+    // print the new face ID to the DOM
+    let attrs = person.attributes;
+    console.log('person:', attrs.gender, attrs.age);
+    let $row = $('<tr>').append( $('<td>').text(person.faceId) )
+                        .append( $('<td>').text(attrs.gender) )
+                        .append( $('<td>').text(attrs.age) );
+    $('#faceIds').append($row).show();
+
+              currentCtx.strokeStyle = '#df4b26';
+              currentCtx.lineJoin = 'round' ;
+              currentCtx.lineWidth = 5;
+
+            var x = person.faceRectangle.left;
+            var y = person.faceRectangle.top;
+            var w = person.faceRectangle.width;
+            var h = person.faceRectangle.height;
+
+                currentCtx.beginPath();
+                currentCtx.moveTo(x ,y)
+                currentCtx.lineTo(x+w,y)
+                currentCtx.lineTo(x+w,y+h)
+                currentCtx.lineTo( x ,y+h)
+                currentCtx.lineTo( x ,y)
+                currentCtx.closePath();
+                currentCtx.stroke();
+
+
+// //person.faceRectangle.left
+//person.faceRectangle.height
+//person.faceRectangle.width , top
+    // TODO: DISPLAY BOX AROUND THIS PERSON'S FACE ON TOP OF PICTURE
+  }
 
 
   function paramForDetect(url) {

@@ -86,3 +86,8 @@ button{
 .face{
   border:1px solid white;
 }
+canvas{
+  height:auto;
+  width:auto;
+}
+
